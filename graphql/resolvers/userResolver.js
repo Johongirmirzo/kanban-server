@@ -16,13 +16,33 @@ const userResolvers = {
         password,
         confirmPassword
       );
+      console.log("Registering");
       if (!isValid) {
         throw new UserInputError("User input errors", { errors });
       }
-      const user = await User.findOne({ $or: [{ username }, { email }] });
-      if (user) {
-        throw new UserInputError("Username or Email already taken", {
-          errors: { error: "Username or Email already taken" },
+
+      if (
+        await User.findOne({
+          $and: [{ username }, { email }],
+        })
+      ) {
+        throw new UserInputError("Username and Email already taken", {
+          errors: {
+            usernameDuplicate: "Username already taken",
+            emailDuplicate: "Email already taken",
+          },
+        });
+      } else if (await User.findOne({ username })) {
+        throw new UserInputError("Username already taken", {
+          errors: {
+            error: "Username already taken",
+          },
+        });
+      } else if (await User.findOne({ email })) {
+        throw new UserInputError("Email already taken", {
+          errors: {
+            error: "Email already taken",
+          },
         });
       }
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -58,6 +78,8 @@ const userResolvers = {
         ...user._doc,
         id: user._id,
         token,
+        email,
+        password,
       };
     },
   },
